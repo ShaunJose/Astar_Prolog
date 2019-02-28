@@ -75,7 +75,7 @@ addToFrontier(RouteList1, RouteList2, SortedRouteList) :-
   selectionSort(UnsortedRouteList, Len, SortedRouteList).
 
 %performs selection sort of route lists, using the lessThan predicate :)
-selectionSort(OneElemList, 1, OneElemList). %TODO: add cut?
+selectionSort(OneElemList, 1, OneElemList) :- !.
 selectionSort([H|T], Len, [Smallest|SortedList]) :-
   smallest(T, H, NonSmallestElems, Smallest),
   NextLen is Len - 1,
@@ -90,6 +90,7 @@ smallest([H|T], CurrSmallest, [CurrSmallest|NonSmallestElems], Smallest) :-
   lessThan(H, CurrSmallest),
   smallest(T, H, NonSmallestElems, Smallest).
 
+%true if first path's cost is less than or equal to the second part's. False otherwise.
 lessThan([Node1|CostList1],[Node2|CostList2]) :-
   heuristic([Node1], Hvalue1),
   heuristic([Node2], Hvalue2),

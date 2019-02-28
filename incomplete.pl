@@ -38,19 +38,19 @@ astar(Node, Path, Cost) :-
 %TODO: change the latter part: astar([H|_], _, _, _) :- goal(H).
 
 astar([Path1|OtherPaths], Path, Cost, KB) :-
-  findall(Route, arc([Path1], Route, KB), [Path|Cost]).
-  %addToFrontier(Routes, OtherPaths, NewRouteList),
+  findall(Route, arc([Path1], Route, KB), Routes),
+  addToFrontier(Routes, OtherPaths, NewRouteList).
   %astar(NewRouteList, ).
 
 goal([]). %TODO: change this accordingly. empty tuple =
 
 arc([H|_], Route, KB) :-
-  getNode(H, Node, RestOfPath, HeadCost),
+  getNode(H, Node, RestOfPath, PrevCost),
   member([Node|Children], KB),
   append(Children, RestOfPath, NewHeadPath),
   Route = [NewHeadPath, Cost],
   length(Children, L),
-  Cost is L + HeadCost.
+  Cost is L + PrevCost.
 
 
 %gets the first node, other nodes (as a list) and the cost from a list of [[firstNode|OtherNodes], Cost]. Gets node if just an atomic node is passed
@@ -65,10 +65,36 @@ extractNode([Node|OtherNodes], Node, OtherNodes).
 %gets cost from a list containing one element - the cost :D
 extractCost([Cost|_], Cost).
 
+%adds RouteList1 to RouteList 2, with ascending order of costs (using selection sort). First part is PURELY for efficiency
+addToFrontier(UnsortedRouteList, [], SortedRouteList) :-
+  length(UnsortedRouteList, Len),
+  selectionSort(UnsortedRouteList, Len, SortedRouteList).
+addToFrontier(RouteList1, RouteList2, SortedRouteList) :-
+  append(RouteList1, RouteList2, UnsortedRouteList),
+  length(UnsortedRouteList, Len),
+  selectionSort(UnsortedRouteList, Len, SortedRouteList).
 
-lessThan([[Node1|_],Cost1],[[Node2|_],Cost2]) :-
-  heuristic(Node1, Hvalue1),
-  heuristic(Node2, Hvalue2),
+%performs selection sort of route lists, using the lessThan predicate :)
+selectionSort(OneElemList, 1, OneElemList). %TODO: add cut?
+selectionSort([H|T], Len, [Smallest|SortedList]) :-
+  smallest(T, H, NonSmallestElems, Smallest),
+  NextLen is Len - 1,
+  selectionSort(NonSmallestElems, NextLen, SortedList).
+
+%finds the smallest element in a list, and returns a list without the smallest element
+smallest([], Smallest, [], Smallest).
+smallest([H|T], CurrSmallest, [H|NonSmallestElems], Smallest) :-
+  lessThan(CurrSmallest, H),
+  smallest(T, CurrSmallest, NonSmallestElems, Smallest).
+smallest([H|T], CurrSmallest, [CurrSmallest|NonSmallestElems], Smallest) :-
+  lessThan(H, CurrSmallest),
+  smallest(T, H, NonSmallestElems, Smallest).
+
+lessThan([Node1|CostList1],[Node2|CostList2]) :-
+  heuristic([Node1], Hvalue1),
+  heuristic([Node2], Hvalue2),
+  extractCost(CostList1, Cost1),
+  extractCost(CostList2, Cost2),
   F1 is Cost1 + Hvalue1, F2 is Cost2 + Hvalue2,
   F1 =< F2.
 

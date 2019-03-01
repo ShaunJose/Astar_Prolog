@@ -35,22 +35,26 @@ astar(Node, Path, Cost) :-
 
 %MAD SHTUFF
 
-%TODO: change the latter part: astar([H|_], _, _, _) :- goal(H).
+%Astar approach..
+astar([H|_], [], Cost, _) :- goal(H, Cost).
+astar([Path1|OtherPaths], [Path1|Path], Cost, KB) :-
+  findall(Route, arc([Path1], Route, Cost, KB), Routes),
+  addToFrontier(Routes, OtherPaths, NewRouteList),
+  astar(NewRouteList, Path, Cost, KB).
 
-astar([Path1|OtherPaths], Path, Cost, KB) :-
-  findall(Route, arc([Path1], Route, KB), Routes),
-  addToFrontier(Routes, OtherPaths, NewRouteList).
-  %astar(NewRouteList, ).
 
-goal([]). %TODO: change this accordingly. empty tuple =
+%reach goal if only cost is left and this path's nodes are done
+goal([[], Cost|[]], Cost) :- integer(Cost).
 
-arc([H|_], Route, KB) :-
-  getNode(H, Node, RestOfPath, PrevCost),
+
+%Processing a node, and getting porrible "next steps" (aka Route) of the node and the cost for those "next steps"
+arc([H|_], Route, Cost, KB) :-
+  getNode(H, Node, RestOfPath, Cost),
   member([Node|Children], KB),
   append(Children, RestOfPath, NewHeadPath),
-  Route = [NewHeadPath, Cost],
+  Route = [NewHeadPath, NewCost],
   length(Children, L),
-  Cost is L + PrevCost.
+  NewCost is L + Cost.
 
 
 %gets the first node, other nodes (as a list) and the cost from a list of [[firstNode|OtherNodes], Cost]. Gets node if just an atomic node is passed
@@ -59,11 +63,14 @@ getNode([NodeList|CostList], HeadNode, TailNodes, Cost) :-
   extractNode(NodeList, HeadNode, TailNodes),
   extractCost(CostList, Cost).
 
+
 %gets head node from a list of nodes :)
 extractNode([Node|OtherNodes], Node, OtherNodes).
 
+
 %gets cost from a list containing one element - the cost :D
 extractCost([Cost|_], Cost).
+
 
 %adds RouteList1 to RouteList 2, with ascending order of costs (using selection sort). First part is PURELY for efficiency
 addToFrontier(UnsortedRouteList, [], SortedRouteList) :-
@@ -74,12 +81,14 @@ addToFrontier(RouteList1, RouteList2, SortedRouteList) :-
   length(UnsortedRouteList, Len),
   selectionSort(UnsortedRouteList, Len, SortedRouteList).
 
+
 %performs selection sort of route lists, using the lessThan predicate :)
 selectionSort(OneElemList, 1, OneElemList) :- !.
 selectionSort([H|T], Len, [Smallest|SortedList]) :-
   smallest(T, H, NonSmallestElems, Smallest),
   NextLen is Len - 1,
   selectionSort(NonSmallestElems, NextLen, SortedList).
+
 
 %finds the smallest element in a list, and returns a list without the smallest element
 smallest([], Smallest, [], Smallest).
@@ -90,6 +99,7 @@ smallest([H|T], CurrSmallest, [CurrSmallest|NonSmallestElems], Smallest) :-
   lessThan(H, CurrSmallest),
   smallest(T, H, NonSmallestElems, Smallest).
 
+
 %true if first path's cost is less than or equal to the second part's. False otherwise.
 lessThan([Node1|CostList1],[Node2|CostList2]) :-
   heuristic([Node1], Hvalue1),
@@ -99,4 +109,6 @@ lessThan([Node1|CostList1],[Node2|CostList2]) :-
   F1 is Cost1 + Hvalue1, F2 is Cost2 + Hvalue2,
   F1 =< F2.
 
+
+%returns heuristic of the Node list (based on the length of the list)
 heuristic(Node, H) :- length(Node, H).
